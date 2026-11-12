@@ -21,10 +21,20 @@
 
 ## 维护
 
-内容源为 `content.json`，样式为 `style.css`。修改后运行：
+内容源为 `content.json`，样式为 `style.css`，章节结构由 `legal_documents.py` 统一生成。修改后运行：
 
 ```sh
 python3 build.py
+```
+
+协议页面采用白底正文、居中标题、更新时间、章节及条款编号，重点条款加粗；联系方式保留在正文和文末。排版参考[豆包用户协议](https://www.doubao.com/legal/terms)、[豆包隐私政策](https://www.doubao.com/legal/privacy)及[美团基本功能隐私政策](https://rules-center.meituan.com/m/detail/2)。仅参考文档组织与阅读样式，正文按各 App 实际功能独立维护。
+
+App 内离线阅读资源也由相同内容生成，更新网页正文时同步导出，避免两套内容分离：
+
+```sh
+python3 export_native.py --app qiandu --output /path/to/qiandu/Resources/LegalDocuments.json --legacy-output /path/to/qiandu/Resources/Legal.json
+python3 export_native.py --app pdfworkbench --output /path/to/PDFWorkbench/Resources/LegalDocuments.json
+python3 export_native.py --app islandledger --output /path/to/IslandLedger/Resources/LegalDocuments.json
 ```
 
 提交生成的 HTML 和内容源。GitHub Pages 使用 `main` 分支的根目录发布，`.nojekyll` 关闭 Jekyll 处理。站点不需要第三方库、广告、浏览器分析脚本或表单服务。网页更新不会自动发布任何 iOS App。

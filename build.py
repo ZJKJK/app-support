@@ -1,6 +1,7 @@
 from pathlib import Path
 from html import escape as h
 import json
+from legal_documents import make_document
 ROOT=Path(__file__).resolve().parent
 DATA=json.loads((ROOT/'content.json').read_text())
 EMAIL=DATA['email'];OWNER=DATA['developer'];BASE=DATA['base_url'];DATE=DATA['updated']
@@ -22,18 +23,37 @@ def shell(title,description,body,slug=None,kind=None):
 <html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="{h(description,quote=True)}"><meta name="color-scheme" content="light"><title>{h(title)} \xb7 {h(OWNER)}</title><link rel="canonical" href="{canonical}"><link rel="stylesheet" href="style.css"></head>
 <body><a class="skip" href="#main">\u8df3\u5230\u6b63\u6587</a><header class="site-header"><div class="wrap header-inner"><a class="brand" href="index.html">{h(OWNER)}<span>\u5e94\u7528\u652f\u6301\u4e0e\u653f\u7b56</span></a><a class="header-contact" href="mailto:{EMAIL}">\u8054\u7cfb\u5f00\u53d1\u8005</a></div></header>
 <main id="main" class="wrap">{body}</main><footer class="wrap"><p>\u5f00\u53d1\u8005 / Developer\uff1a{h(OWNER)} \xb7 {a('mailto:'+EMAIL,EMAIL)}</p><p>\u672c\u7ad9\u4e0d\u5d4c\u5165\u5e7f\u544a\u3001\u7edf\u8ba1\u811a\u672c\u6216\u5728\u7ebf\u8868\u5355\u3002GitHub Pages \u5728\u63d0\u4f9b\u7f51\u9875\u670d\u52a1\u65f6\u53ef\u80fd\u8bb0\u5f55 IP \u5730\u5740\u7b49\u8bbf\u95ee\u65e5\u5fd7\uff0c\u8be6\u89c1 {hosting_privacy}\u3002</p><p>\xa9 2026 {h(OWNER)} \xb7 \u66f4\u65b0\u65e5\u671f\uff1a{DATE}</p></footer></body></html>'''
+def document_page(slug, kind):
+ app=DATA['apps'][slug]
+ doc=make_document(DATA,slug,kind)
+ sections=[]
+ for i,section in enumerate(doc['sections'],1):
+  parts=[f'<section id="section-{i}"><h2>{h(section["title"])}</h2>']
+  for p in section['paragraphs']:
+   text=h(p['text'])
+   if p['emphasized']:text='<strong>'+text+'</strong>'
+   parts.append('<p><span class="clause-number">'+p['number']+'</span> '+text+'</p>')
+  for link in section['links']:
+   parts.append('<p class="legal-reference">'+a(link['url'],link['label'])+'</p>')
+  parts.append('</section>')
+  sections.append('\n'.join(parts))
+ related=' · '.join(a(f'{slug}-{k}.html',label) for k,label in LABELS.items() if k!=kind)
+ privacy_link=a('https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement','GitHub 隐私声明')
+ version='<p>版本：'+h(doc['version'])+'</p>' if kind=='terms' else ''
+ body='<h1>'+h(doc['title'])+'</h1><div class="legal-meta"><p>更新日期：'+h(doc['updated'])+'</p>'+version+'</div>'
+ body+='<p class="legal-introduction">'+h(doc['introduction'])+'</p>'
+ body+='<article>'+''.join(sections)+'</article>'
+ body+='<footer class="legal-footer"><nav aria-label="相关页面">'+related+' · '+a('index.html','全部应用')+'</nav>'
+ body+='<p>开发者：'+h(OWNER)+' · '+a('mailto:'+EMAIL,EMAIL)+'</p>'
+ body+='<p>本网站不嵌入广告或使用统计。网页服务由 GitHub Pages 提供，访问日志处理见'+privacy_link+'。</p></footer>'
+ title=h(doc['title'])
+ return f'''<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="{h(app[kind+'_intro'],quote=True)}"><title>{title}</title><link rel="canonical" href="{BASE}{slug}-{kind}.html"><link rel="stylesheet" href="style.css"></head>
+<body class="legal-page"><a class="skip" href="#main">跳到正文</a><main id="main" class="legal-document">{body}</main></body></html>'''
+
 for slug,app in DATA['apps'].items():
- for kind,label in LABELS.items():
-  nav='<nav class="tabs" aria-label="\u5e94\u7528\u76f8\u5173\u9875\u9762">'+''.join(a(f'{slug}-{k}.html',v) if k!=kind else f'<a href="{slug}-{k}.html" aria-current="page">{v}</a>' for k,v in LABELS.items())+'</nav>'
-  intro=f'<a class="back" href="index.html">\u2190 \u5168\u90e8\u5e94\u7528</a><div class="page-heading"><span class="eyebrow">{h(app["name"])} \xb7 {h(app["english"])}</span><h1>{label}</h1><p class="lede">{h(app[kind+"_intro"])}</p><p class="meta">\u66f4\u65b0\u65e5\u671f\uff1a{DATE} \xb7 \u5f00\u53d1\u8005\uff1a{h(OWNER)}</p></div>'
-  contact=f'<aside class="contact-card"><div><span class="eyebrow">CONTACT / \u8054\u7cfb\u65b9\u5f0f</span><h2>\u9700\u8981\u5e2e\u52a9\uff1f\u76f4\u63a5\u8054\u7cfb\u6211\u4eec</h2><p>{h(app["name"])}\u7684\u95ee\u9898\u53cd\u9988\u3001\u4f7f\u7528\u5e2e\u52a9\u4e0e\u9690\u79c1\u8bf7\u6c42\u5747\u53ef\u53d1\u9001\u81f3\u4e0b\u65b9\u90ae\u7bb1\u3002</p></div><a class="email" href="mailto:{EMAIL}?subject={slug}%20support">{EMAIL}</a></aside>'
-  notice=''
-  if kind=='terms':
-   version=h(app['terms_version'])
-   title='\u91cd\u8981\u63d0\u793a\uff1a\u514d\u8d23\u8bf4\u660e\u4e0e\u8d23\u4efb\u8fb9\u754c'
-   notice=f'<aside class="terms-notice" role="note" aria-labelledby="terms-notice-title"><p class="meta">\u534f\u8bae\u7248\u672c\uff1a{version}</p><h2 id="terms-notice-title">{title}</h2><ul>'+''.join('<li>'+h(p)+'</li>' for p in app['terms_notice'])+'</ul></aside>'
-  body=intro+nav+notice+contact+'<article class="document">'+blocks(app[kind])+'</article>'
-  (ROOT/f'{slug}-{kind}.html').write_text(shell(app['name']+' \xb7 '+label,app[kind+'_intro'],body,slug,kind))
+ for kind in LABELS:
+  (ROOT/f'{slug}-{kind}.html').write_text(document_page(slug,kind))
 cards=[]
 for slug,app in DATA['apps'].items():
  links=''.join(a(f'{slug}-{k}.html',v) for k,v in LABELS.items())
