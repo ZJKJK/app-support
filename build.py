@@ -27,7 +27,12 @@ for slug,app in DATA['apps'].items():
   nav='<nav class="tabs" aria-label="\u5e94\u7528\u76f8\u5173\u9875\u9762">'+''.join(a(f'{slug}-{k}.html',v) if k!=kind else f'<a href="{slug}-{k}.html" aria-current="page">{v}</a>' for k,v in LABELS.items())+'</nav>'
   intro=f'<a class="back" href="index.html">\u2190 \u5168\u90e8\u5e94\u7528</a><div class="page-heading"><span class="eyebrow">{h(app["name"])} \xb7 {h(app["english"])}</span><h1>{label}</h1><p class="lede">{h(app[kind+"_intro"])}</p><p class="meta">\u66f4\u65b0\u65e5\u671f\uff1a{DATE} \xb7 \u5f00\u53d1\u8005\uff1a{h(OWNER)}</p></div>'
   contact=f'<aside class="contact-card"><div><span class="eyebrow">CONTACT / \u8054\u7cfb\u65b9\u5f0f</span><h2>\u9700\u8981\u5e2e\u52a9\uff1f\u76f4\u63a5\u8054\u7cfb\u6211\u4eec</h2><p>{h(app["name"])}\u7684\u95ee\u9898\u53cd\u9988\u3001\u4f7f\u7528\u5e2e\u52a9\u4e0e\u9690\u79c1\u8bf7\u6c42\u5747\u53ef\u53d1\u9001\u81f3\u4e0b\u65b9\u90ae\u7bb1\u3002</p></div><a class="email" href="mailto:{EMAIL}?subject={slug}%20support">{EMAIL}</a></aside>'
-  body=intro+nav+contact+'<article class="document">'+blocks(app[kind])+'</article>'
+  notice=''
+  if kind=='terms':
+   version=h(app['terms_version'])
+   title='\u91cd\u8981\u63d0\u793a\uff1a\u514d\u8d23\u8bf4\u660e\u4e0e\u8d23\u4efb\u8fb9\u754c'
+   notice=f'<aside class="terms-notice" role="note" aria-labelledby="terms-notice-title"><p class="meta">\u534f\u8bae\u7248\u672c\uff1a{version}</p><h2 id="terms-notice-title">{title}</h2><ul>'+''.join('<li>'+h(p)+'</li>' for p in app['terms_notice'])+'</ul></aside>'
+  body=intro+nav+notice+contact+'<article class="document">'+blocks(app[kind])+'</article>'
   (ROOT/f'{slug}-{kind}.html').write_text(shell(app['name']+' \xb7 '+label,app[kind+'_intro'],body,slug,kind))
 cards=[]
 for slug,app in DATA['apps'].items():
